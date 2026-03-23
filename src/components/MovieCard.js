@@ -1,6 +1,8 @@
 export default function MovieCard({ movie }) {
   return (
-    <div className="bg-gray-800 w-60 rounded-xl overflow-hidden shadow-lg hover:scale-105 transition">
+    <div className="bg-gray-800 w-60 rounded-xl overflow-hidden
+         shadow-lg
+        hover:scale-105 transition hover:shadow-2xl transition duration-300">
       
       <img
         src={
