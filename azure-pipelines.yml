@@ -1,0 +1,54 @@
+trigger:
+- main
+
+variables:
+  azureSubscription: '3edf302c-c1a5-441c-adfb-1627a900394b'
+  webAppName: 'movielistingapp'   # 🔥 PUT YOUR APP NAME HERE
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    pool:
+      vmImage: $(vmImageName)
+
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'
+      displayName: "Install Node"
+
+    - script: |
+        npm install
+        npm run build
+      displayName: "Build React App"
+
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: 'build'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/app.zip
+        replaceExistingArchive: true
+
+    - publish: $(Build.ArtifactStagingDirectory)/app.zip
+      artifact: drop
+
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'production'
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appName: $(webAppName)
+              package: '$(Pipeline.Workspace)/drop/app.zip'
