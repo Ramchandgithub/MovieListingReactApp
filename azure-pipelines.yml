@@ -1,54 +1,68 @@
 trigger:
 - main
 
+pool:
+  vmImage: 'ubuntu-latest'
+
 variables:
-  azureSubscription: '3edf302c-c1a5-441c-adfb-1627a900394b'   # NOT subscription ID
-  webAppName: 'movielistingapp'
-  vmImageName: 'ubuntu-latest'
+  azureSubscription: '3edf302c-c1a5-441c-adfb-1627a900394b'
+  webAppName: 'YOUR-APP-NAME'
 
 stages:
 
-# ========================
-# 🔹 BUILD STAGE
-# ========================
+# ================= BUILD =================
 - stage: Build
-  displayName: Build Stage
   jobs:
   - job: Build
-    displayName: Build React App
-    pool:
-      vmImage: $(vmImageName)
-
     steps:
-    # Install Node.js
+
     - task: NodeTool@0
       inputs:
         versionSpec: '18.x'
       displayName: 'Install Node.js'
 
-    # Install dependencies
     - script: |
         npm install
-      displayName: 'Install Dependencies'
-
-    # Build React app
-    - script: |
         npm run build
       displayName: 'Build React App'
 
-    # Archive ONLY build folder
+    # Copy build files
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: 'build'
+        Contents: '**'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+    # Archive build
     - task: ArchiveFiles@2
       inputs:
-        rootFolderOrFile: 'build'
+        rootFolderOrFile: '$(Build.ArtifactStagingDirectory)'
         includeRootFolder: false
         archiveType: zip
-        archiveFile: '$(Build.ArtifactStagingDirectory)/react-app.zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
         replaceExistingArchive: true
-      displayName: 'Archive Build Files'
 
-    # Publish artifact
-    - publish: '$(Build.ArtifactStagingDirectory)/react-app.zip'
+    - publish: '$(Build.ArtifactStagingDirectory)/app.zip'
       artifact: drop
 
-# ========================
-#
+
+# ================= DEPLOY =================
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - download: current
+            artifact: drop
+
+          - task: AzureRmWebAppDeployment@4
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appType: webAppLinux
+              WebAppName: $(webAppName)
+              packageForLinux: '$(Pipeline.Workspace)/drop/app.zip'
