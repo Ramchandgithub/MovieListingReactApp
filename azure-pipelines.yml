@@ -3,7 +3,7 @@ trigger:
 
 variables:
   azureSubscription: '3edf302c-c1a5-441c-adfb-1627a900394b'
-  webAppName: 'movielistingapp'   # 🔥 PUT YOUR APP NAME HERE
+  webAppName: 'movielistingapp'   
   vmImageName: 'ubuntu-latest'
 
 stages:
