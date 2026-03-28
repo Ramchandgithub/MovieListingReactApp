@@ -2,53 +2,53 @@ trigger:
 - main
 
 variables:
-  azureSubscription: '3edf302c-c1a5-441c-adfb-1627a900394b'
-  webAppName: 'movielistingapp'   
+  azureSubscription: '3edf302c-c1a5-441c-adfb-1627a900394b'   # NOT subscription ID
+  webAppName: 'movielistingapp'
   vmImageName: 'ubuntu-latest'
 
 stages:
+
+# ========================
+# 🔹 BUILD STAGE
+# ========================
 - stage: Build
+  displayName: Build Stage
   jobs:
   - job: Build
+    displayName: Build React App
     pool:
       vmImage: $(vmImageName)
 
     steps:
+    # Install Node.js
     - task: NodeTool@0
       inputs:
         versionSpec: '18.x'
-      displayName: "Install Node"
+      displayName: 'Install Node.js'
 
+    # Install dependencies
     - script: |
         npm install
-        npm run build
-      displayName: "Build React App"
+      displayName: 'Install Dependencies'
 
+    # Build React app
+    - script: |
+        npm run build
+      displayName: 'Build React App'
+
+    # Archive ONLY build folder
     - task: ArchiveFiles@2
       inputs:
         rootFolderOrFile: 'build'
         includeRootFolder: false
         archiveType: zip
-        archiveFile: $(Build.ArtifactStagingDirectory)/app.zip
+        archiveFile: '$(Build.ArtifactStagingDirectory)/react-app.zip'
         replaceExistingArchive: true
+      displayName: 'Archive Build Files'
 
-    - publish: $(Build.ArtifactStagingDirectory)/app.zip
+    # Publish artifact
+    - publish: '$(Build.ArtifactStagingDirectory)/react-app.zip'
       artifact: drop
 
-- stage: Deploy
-  dependsOn: Build
-  jobs:
-  - deployment: Deploy
-    pool:
-      vmImage: $(vmImageName)
-    environment: 'production'
-
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: AzureWebApp@1
-            inputs:
-              azureSubscription: $(azureSubscription)
-              appName: $(webAppName)
-              package: '$(Pipeline.Workspace)/drop/app.zip'
+# ========================
+#
